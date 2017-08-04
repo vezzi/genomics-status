@@ -18,52 +18,10 @@ import tornado.web
 from tornado import template
 from tornado.options import define, options
 
-from status.applications import ApplicationDataHandler, ApplicationHandler, ApplicationsDataHandler, ApplicationsHandler
-from status.authorization import LoginHandler, LogoutHandler, UnAuthorizedHandler
-from status.barcode_vs_expected import BarcodeVsExpectedDataHandler, BarcodeVsExpectedPlotHandler, ExpectedHandler
-from status.bioinfo_analysis import BioinfoAnalysisHandler
-from status.clusters_per_lane import ClustersPerLaneHandler, ClustersPerLanePlotHandler
-from status.deliveries import DeliveriesPageHandler
-from status.flowcell import FlowcellHandler
-from status.flowcells import FlowcellDemultiplexHandler, FlowcellLinksDataHandler, \
-    FlowcellNotesDataHandler, FlowcellQ30Handler, FlowcellQCHandler, FlowcellsDataHandler, FlowcellSearchHandler, \
-    FlowcellsHandler, FlowcellsInfoDataHandler, OldFlowcellsInfoDataHandler, ReadsTotalHandler
-from status.instruments import InstrumentLogsHandler, DataInstrumentLogsHandler, InstrumentNamesHandler
-from status.multiqc_report import MultiQCReportHandler
-from status.phix_err_rate import PhixErrorRateDataHandler, PhixErrorRateHandler
-from status.production import DeliveredMonthlyDataHandler, DeliveredMonthlyPlotHandler, DeliveredQuarterlyDataHandler, \
-    DeliveredQuarterlyPlotHandler, ProducedMonthlyDataHandler, ProducedMonthlyPlotHandler, ProducedQuarterlyDataHandler, \
-    ProducedQuarterlyPlotHandler, ProductionCronjobsHandler, ProductionHandler
-from status.projects import CaliperImageHandler, CharonProjectHandler, \
-    LinksDataHandler, PresetsHandler, ProjectDataHandler, ProjectQCDataHandler, ProjectSamplesDataHandler, ProjectSamplesHandler, \
-    ProjectsDataHandler, ProjectsFieldsDataHandler, ProjectsHandler, ProjectsSearchHandler, ProjectSummaryHandler, \
-    ProjectSummaryUpdateHandler, ProjectTicketsDataHandler, RunningNotesDataHandler, RecCtrlDataHandler, \
-    ProjMetaCompareHandler, ProjectInternalCostsHandler, ProjectRNAMetaDataHandler
+from status.util import BaseHandler, MainHandler
+from status.flowcells import  FlowcellSearchHandler
 
-from status.quotas import QuotasHandler
-from status.nas_quotas import NASQuotasHandler
-from status.q30 import Q30Handler, Q30PlotHandler
-from status.reads_plot import DataFlowcellYieldHandler, FlowcellPlotHandler, FlowcellCountPlotHandler, FlowcellCountApiHandler
-from status.reads_per_lane import ReadsPerLaneHandler, ReadsPerLanePlotHandler
-from status.reads_vs_qv import ReadsVsQDataHandler, ReadsVsQvhandler
-from status.samples import SampleInfoDataHandler, SampleQCAlignmentDataHandler, SampleQCCoverageDataHandler, \
-    SampleQCDataHandler, SampleQCInsertSizesDataHandler, SampleQCSummaryDataHandler, SampleQCSummaryHandler, \
-    SampleReadCountDataHandler, SampleRunDataHandler, SampleRunHandler, SampleRunReadCountDataHandler, SamplesPerLaneDataHandler, \
-    SamplesPerLaneHandler, SamplesPerLanePlotHandler
-from status.sequencing import InstrumentClusterDensityPlotHandler, InstrumentErrorratePlotHandler, InstrumentUnmatchedPlotHandler, \
-    InstrumentYieldPlotHandler, InstrumentClusterDensityDataHandler, InstrumentErrorrateDataHandler, InstrumentUnmatchedDataHandler, \
-    InstrumentYieldDataHandler, SequencingStatsHandler
-from status.statistics import YearApplicationsProjectHandler, YearApplicationsSamplesHandler, YearAffiliationProjectsHandler, YearDeliverytimeProjectsHandler, \
-    ApplicationOpenProjectsHandler, ApplicationOpenSamplesHandler, WeekInstrumentTypeYieldHandler, StatsAggregationHandler, YearDeliverytimeApplicationHandler
-from status.suggestion_box import SuggestionBoxDataHandler, SuggestionBoxHandler
-from status.testing import TestDataHandler
-from status.util import BaseHandler, DataHandler, LastPSULRunHandler, MainHandler, PagedQCDataHandler, SafeStaticFileHandler, \
-    UpdatedDocumentsDatahandler
-from status.worksets import WorksetHandler, WorksetsHandler, WorksetDataHandler, WorksetLinksHandler, WorksetNotesDataHandler, \
-    WorksetsDataHandler, WorksetSearchHandler
-from status.workset_placement import WorksetPlacementHandler,WorksetSampleLoadHandler, GenerateWorksetHandler, WorksetPlacementSavingHandler
 
-from zendesk import Zendesk
 
 
 class Application(tornado.web.Application):
@@ -86,148 +44,13 @@ class Application(tornado.web.Application):
             self.gs_globals['git_commit'] = 'unknown'
             self.gs_globals['git_commit_full'] = 'unknown'
 
+#        handlers = [
+#            ("/", MainHandler),
+#            (r'.*', BaseHandler),
+#        ]
         handlers = [
             ("/", MainHandler),
-            ("/login", LoginHandler),
-            ("/logout", LogoutHandler),
-            ("/unauthorized", UnAuthorizedHandler),
-            ("/api/v1", DataHandler),
-            ("/api/v1/applications", ApplicationsDataHandler),
-            ("/api/v1/application/([^/]*)$", ApplicationDataHandler),
-            ("/api/v1/bioinfo_analysis", BioinfoAnalysisHandler),
-            ("/api/v1/bioinfo_analysis/([^/]*)$", BioinfoAnalysisHandler),
-            ("/api/v1/expected", BarcodeVsExpectedDataHandler),
-            tornado.web.URLSpec("/api/v1/caliper_image/(?P<project>[^/]+)/(?P<sample>[^/]+)/(?P<step>[^/]+)", CaliperImageHandler, name="CaliperImageHandler"),
-            ("/api/v1/charon_summary/([^/]*)$",CharonProjectHandler ),
-            ("/api/v1/delivered_monthly", DeliveredMonthlyDataHandler),
-            ("/api/v1/delivered_monthly.png", DeliveredMonthlyPlotHandler),
-            ("/api/v1/delivered_quarterly", DeliveredQuarterlyDataHandler),
-            ("/api/v1/delivered_quarterly.png", DeliveredQuarterlyPlotHandler),
-            ("/api/v1/flowcells", FlowcellsDataHandler),
-            ("/api/v1/flowcell_count/", FlowcellCountApiHandler),
-            ("/api/v1/flowcell_info2/([^/]*)$", FlowcellsInfoDataHandler),
-            ("/api/v1/flowcell_info/([^/]*)$", OldFlowcellsInfoDataHandler),
-            ("/api/v1/flowcell_qc/([^/]*)$", FlowcellQCHandler),
-            ("/api/v1/flowcell_demultiplex/([^/]*)$",
-                FlowcellDemultiplexHandler),
-            ("/api/v1/flowcell_q30/([^/]*)$", FlowcellQ30Handler),
-            # ("/api/v1/flowcells/([^/]*)$", FlowcellDataHandler),
-            ("/api/v1/flowcell_notes/([^/]*)$", FlowcellNotesDataHandler),
-            ("/api/v1/flowcell_links/([^/]*)$", FlowcellLinksDataHandler),
             ("/api/v1/flowcell_search/([^/]*)$", FlowcellSearchHandler),
-            ("/api/v1/flowcell_yield/([^/]*)$", DataFlowcellYieldHandler),
-            ("/api/v1/generate_workset", GenerateWorksetHandler),
-            ("/api/v1/instrument_cluster_density",
-                InstrumentClusterDensityDataHandler),
-            ("/api/v1/instrument_cluster_density.png",
-                InstrumentClusterDensityPlotHandler),
-            ("/api/v1/instrument_error_rates", InstrumentErrorrateDataHandler),
-            ("/api/v1/instrument_error_rates.png",
-                InstrumentErrorratePlotHandler),
-            ("/api/v1/instrument_logs", DataInstrumentLogsHandler),
-            ("/api/v1/instrument_logs/([^/]*)$", DataInstrumentLogsHandler),
-            ("/api/v1/instrument_names",InstrumentNamesHandler ),
-            ("/api/v1/instrument_unmatched", InstrumentUnmatchedDataHandler),
-            ("/api/v1/instrument_unmatched.png", InstrumentUnmatchedPlotHandler),
-            ("/api/v1/instrument_yield", InstrumentYieldDataHandler),
-            ("/api/v1/instrument_yield.png", InstrumentYieldPlotHandler),
-            ("/api/v1/internal_costs/([^/]*)", ProjectInternalCostsHandler),
-            ("/api/v1/last_updated", UpdatedDocumentsDatahandler),
-            ("/api/v1/last_psul", LastPSULRunHandler),
-            ("/api/v1/load_workset_samples", WorksetSampleLoadHandler),
-            ("/api/v1/plot/q30.png", Q30PlotHandler),
-            ("/api/v1/plot/samples_per_lane.png",
-                SamplesPerLanePlotHandler),
-            ("/api/v1/plot/reads_per_lane.png", ReadsPerLanePlotHandler),
-            ("/api/v1/plot/clusters_per_lane.png", ClustersPerLanePlotHandler),
-            ("/api/v1/plot/barcodes_vs_expected([^/]*)$", BarcodeVsExpectedPlotHandler),
-            ("/api/v1/samples_per_lane", SamplesPerLaneDataHandler),
-            ("/api/v1/produced_monthly", ProducedMonthlyDataHandler),
-            ("/api/v1/produced_monthly.png", ProducedMonthlyPlotHandler),
-            ("/api/v1/produced_quarterly", ProducedQuarterlyDataHandler),
-            ("/api/v1/produced_quarterly.png", ProducedQuarterlyPlotHandler),
-            ("/api/v1/projects", ProjectsDataHandler),
-            ("/api/v1/project/([^/]*)$", ProjectSamplesDataHandler),
-            ("/api/v1/project/([^/]*)/tickets", ProjectTicketsDataHandler),
-            ("/api/v1/projects_fields", ProjectsFieldsDataHandler),
-            ("/api/v1/project_summary/([^/]*)$", ProjectDataHandler),
-            ("/api/v1/project_summary_update/([^/]*)/([^/]*)$", ProjectSummaryUpdateHandler),
-            ("/api/v1/project_search/([^/]*)$", ProjectsSearchHandler),
-            ("/api/v1/presets", PresetsHandler),
-            ("/api/v1/qc/([^/]*)$", SampleQCDataHandler),
-            ("/api/v1/projectqc/([^/]*)$", ProjectQCDataHandler),
-            ("/api/v1/reads_vs_quality", ReadsVsQDataHandler),
-            ("/api/v1/rna_report/([^/]*$)", ProjectRNAMetaDataHandler),
-            ("/api/v1/running_notes/([^/]*)$", RunningNotesDataHandler),
-            ("/api/v1/links/([^/]*)$", LinksDataHandler),
-            ("/api/v1/sample_info/([^/]*)$", SampleInfoDataHandler),
-            ("/api/v1/sample_readcount/(\w+)?", SampleReadCountDataHandler),
-            ("/api/v1/sample_run_counts/(\w+)?",
-                SampleRunReadCountDataHandler),
-            ("/api/v1/sample_alignment/([^/]*)$",
-                SampleQCAlignmentDataHandler),
-            ("/api/v1/sample_coverage/([^/]*)$", SampleQCCoverageDataHandler),
-            ("/api/v1/sample_summary/([^/]*)$", SampleQCSummaryDataHandler),
-            ("/api/v1/sample_insert_sizes/([^/]*)$",
-                SampleQCInsertSizesDataHandler),
-            ("/api/v1/samples/start/([^/]*)$", PagedQCDataHandler),
-            ("/api/v1/samples/([^/]*)$", SampleRunDataHandler),
-            ("/api/v1/stats",StatsAggregationHandler),
-            ("/api/v1/stats/application_open_projects",ApplicationOpenProjectsHandler),
-            ("/api/v1/stats/application_open_samples",ApplicationOpenSamplesHandler),
-            ("/api/v1/stats/week_instr_yield",WeekInstrumentTypeYieldHandler),
-            ("/api/v1/stats/year_application",YearApplicationsProjectHandler),
-            ("/api/v1/stats/year_application_samples",YearApplicationsSamplesHandler),
-            ("/api/v1/stats/year_affiliation_projects",YearAffiliationProjectsHandler),
-            ("/api/v1/stats/year_deliverytime_projects",YearDeliverytimeProjectsHandler),
-            ("/api/v1/stats/year_deliverytime_application",YearDeliverytimeApplicationHandler),
-            ("/api/v1/deliveries/set_bioinfo_responsible$", DeliveriesPageHandler),
-            ("/api/v1/suggestions", SuggestionBoxDataHandler),
-            ("/api/v1/test/(\w+)?", TestDataHandler),
-            ("/api/v1/phix_err_rate", PhixErrorRateDataHandler),
-            ("/api/v1/worksets", WorksetsDataHandler),
-            ("/api/v1/workset/([^/]*)$", WorksetDataHandler),
-            ("/api/v1/workset_search/([^/]*)$", WorksetSearchHandler),
-            ("/api/v1/workset_notes/([^/]*)$", WorksetNotesDataHandler),
-            ("/api/v1/workset_links/([^/]*)$", WorksetLinksHandler),
-            ("/api/v1/ws_pl_to_lims", WorksetPlacementSavingHandler),
-            ("/applications", ApplicationsHandler),
-            ("/application/([^/]*)$", ApplicationHandler),
-            ("/barcode_vs_expected", ExpectedHandler),
-            ("/bioinfo/(P[^/]*)$", BioinfoAnalysisHandler),
-            ("/deliveries", DeliveriesPageHandler),
-            ("/clusters_per_lane", ClustersPerLaneHandler),
-            ("/flowcells", FlowcellsHandler),
-            ("/flowcells/([^/]*)$", FlowcellHandler),
-            ("/flowcells_plot", FlowcellPlotHandler),
-            ("/flowcell_count_plot", FlowcellCountPlotHandler),
-            ("/instrument_logs",InstrumentLogsHandler),
-            ("/instrument_logs/([^/]*)$", InstrumentLogsHandler),
-            ("/multiqc_report/([^/]*)$", MultiQCReportHandler),
-            ("/nas_quotas", NASQuotasHandler),
-            ("/q30", Q30Handler),
-            ("/qc/([^/]*)$", SampleQCSummaryHandler),
-            (r"/qc_reports/(.*)", SafeStaticFileHandler, {"path": 'qc_reports'}),
-            ("/quotas", QuotasHandler),
-            ("/phix_err_rate", PhixErrorRateHandler),
-            ("/production", ProductionHandler),
-            ("/production/cronjobs", ProductionCronjobsHandler),
-            ("/project/([^/]*)$", ProjectSamplesHandler),
-            ("/project/(P[^/]*)/([^/]*)$", ProjectSamplesHandler),
-            ("/project_summary/([^/]*)$", ProjectSummaryHandler),
-            ("/projects/([^/]*)$", ProjectsHandler),
-            ("/proj_meta", ProjMetaCompareHandler),
-            ("/reads_total/([^/]*)$", ReadsTotalHandler),
-            ("/reads_vs_qv", ReadsVsQvhandler),
-            ("/reads_per_lane", ReadsPerLaneHandler),
-            ("/rec_ctrl_view/([^/]*)$", RecCtrlDataHandler),
-            ("/samples_per_lane", SamplesPerLaneHandler),
-            ("/samples/([^/]*)$", SampleRunHandler),
-            ("/sequencing", SequencingStatsHandler),
-            ("/suggestion_box", SuggestionBoxHandler),
-            ("/worksets", WorksetsHandler),
-            ("/workset/([^/]*)$", WorksetHandler),
-            ("/workset_placement",WorksetPlacementHandler),
             (r'.*', BaseHandler)
         ]
 
@@ -239,7 +62,7 @@ class Application(tornado.web.Application):
         # Global connection to the database
         couch = Server(settings.get("couch_server", None))
         if couch:
-            self.analysis_db= couch["analysis"]
+            self.analysis_db = couch["analysis"]
             self.application_categories_db = couch["application_categories"]
             self.bioinfo_db = couch["bioinfo_analysis"]
             self.cronjobs_db = couch["cronjobs"]
@@ -273,53 +96,18 @@ class Application(tornado.web.Application):
         # mess up
         user = settings.get("username", None)
         password = settings.get("password", None)
-        headers = {"Accept": "application/json",
-                   "Authorization": "Basic " + "{}:{}".format(user, password).encode('base64')[:-1]}
+        headers = {"Accept": "application/json"}
+        #           "Authorization": "Basic " + "{}:{}".format(user, password).encode('base64')[:-1]}
         decoder = json.JSONDecoder(object_pairs_hook=OrderedDict)
         user_url = "{}/gs_users/{}".format(settings.get("couch_server"), genstat_id)
         json_user = requests.get(user_url, headers=headers).content.rstrip()
-
         self.genstat_defaults = decoder.decode(json_user)
-
-        # Load private instrument listing
-        self.instrument_list = settings.get("instruments")
 
         # If settings states  mode, no authentication is used
         self.test_mode = settings["Testing mode"]
 
         # google oauth key
         self.oauth_key = settings["google_oauth"]["key"]
-
-        # ZenDesk
-        self.zendesk_url = settings["zendesk"]["url"]
-        self.zendesk_user = settings["zendesk"]["username"]
-        self.zendesk_token = settings["zendesk"]["token"]
-        self.zendesk = Zendesk(self.zendesk_url, use_api_token=True, zendesk_username=self.zendesk_user,
-                                zendesk_password=self.zendesk_token, api_version=2)
-
-        # Trello
-        self.trello_api_key = settings['trello']['api_key']
-        self.trello_api_secret = settings['trello']['api_secret']
-        self.trello_token = settings['trello']['token']
-
-        # Load password seed
-        self.password_seed = settings.get("password_seed")
-
-        # load logins for the genologics sftp
-        self.genologics_login=settings['sftp']['login']
-        self.genologics_pw=settings['sftp']['password']
-
-        # Location of the psul log
-        self.psul_log=settings.get("psul_log")
-
-
-        # index page - to display quotas of uppmax projects
-    	self.uppmax_projects = settings.get('uppmax_projects')
-        # to display instruments in the server status
-        self.server_status = settings.get('server_status')
-
-        # project summary - multiqc tab
-        self.multiqc_path = settings.get('multiqc_path')
 
         # Setup the Tornado Application
         cookie_secret = base64.b64encode(uuid.uuid4().bytes + uuid.uuid4().bytes)
